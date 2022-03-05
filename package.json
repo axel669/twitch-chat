@@ -1,0 +1,28 @@
+{
+  "name": "@axel669/twitch",
+  "version": "1.0.0-beta.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c build/rollup.config.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/axel669/twitch-chat.git"
+  },
+  "author": "Axel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/axel669/twitch-chat/issues"
+  },
+  "homepage": "https://github.com/axel669/twitch-chat#readme",
+  "devDependencies": {
+    "rollup": "^2.69.1"
+  },
+  "files": [
+    "index.js",
+    "dist/",
+    "src/"
+  ]
+}
