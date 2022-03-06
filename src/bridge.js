@@ -6,7 +6,7 @@ const pathList = (type) => type.split(".").reduce(
 
         const parent = list[0]
         list.unshift(
-            `${parent}.${part}`,
+            // `${parent}.${part}`,
             `${parent}.*`
         )
         return list

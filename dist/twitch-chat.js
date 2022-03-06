@@ -189,7 +189,7 @@ var Chat = (function () {
 
             const parent = list[0];
             list.unshift(
-                `${parent}.${part}`,
+                // `${parent}.${part}`,
                 `${parent}.*`
             );
             return list
