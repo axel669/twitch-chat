@@ -31,7 +31,7 @@ chat.disconnect()
 ```
 
 ## Events
-Library uses [https://github.com/axel669/event-bridge](EventBridge) to
+Library uses [EventBridge](https://github.com/axel669/event-bridge) to
 manage events, see there for more details about how listeners work. The `Chat`
 object passes the `on` and `forward` functions from the internal bridge it uses.
 
