@@ -31,24 +31,15 @@ chat.disconnect()
 ```
 
 ## Events
-The chat lib uses fires events that correspond to various things that come
-through the websocket. There is a custom event emitter under the hood that
-allows the use of namespaced events and wildcards (similar to things like
-pubsub-js), and the return value from the `on()` function is a function that
-removes the listener.
-
-```js
-//  will only fire "sub" events and none of the subtypes like sub.new
-on("sub")
-//  will listen to all sub events (sub.new, sub.resub, etc.)
-on("sub.*")
-
-//  will listen to specific events
-on("chat")
-on("sub.new")
-```
+Library uses [https://github.com/axel669/event-bridge](EventBridge) to
+manage events, see there for more details about how listeners work. The `Chat`
+object passes the `on` and `forward` functions from the internal bridge it uses.
 
 ### Event List
+> This is a list of the events that are currently parsed and sorted through.
+> There are still some irc commands it doesn't parse (I didn't really see a
+> reason to, but I'm also lazy), and those can be captured with the `*` event.
+> Those events will always be full caps like the commands.
 - system - System messages that come through the socket (I got pretty lazy about
     parsing these)
 - ping - Twitch sends a ping every few minutes, the library automatically sends
