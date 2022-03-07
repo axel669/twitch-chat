@@ -1,16 +1,15 @@
 var Chat = (function () {
     'use strict';
 
-    const initParser = (username, emitter) => {
-        const processMessage = (line) => {
+    const initParser = (username) => {
+        const parseMessage = (line) => {
             const type = parseType(line);
 
             if (parser[type] === undefined) {
                 return type
             }
 
-            const message = parser[type](line);
-            emitter.fire(message.type, message);
+            return parser[type](line)
         };
 
         const source = {
@@ -103,7 +102,7 @@ var Chat = (function () {
 
             return pos
         };
-        const iterativeParse = (line, info, index) => {
+        const parseSection = (line, info, index) => {
             const space = findOrEnd(line, " ", index);
             if (line.charAt(index) === "@") {
                 const tags = line.substring(index + 1, space);
@@ -171,95 +170,149 @@ var Chat = (function () {
             const info = {};
             let index = 0;
             while (true) {
-                index = iterativeParse(line, info, index);
+                index = parseSection(line, info, index);
                 if (index >= line.length) {
                     return info
                 }
             }
         };
 
-        return processMessage
+        return parseMessage
     };
 
-    const pathList = (type) => type.split(".").reduce(
-        (list, part) => {
-            if (list.length === 0) {
-                return [part, "*"]
-            }
+    //  Hand rolled loops and splice are used for performance reasons.
+    //  Normally I wouldn't be concerned with the difference, but with the level
+    //      this lib operates at, I want to get as much performance as possible.
 
-            const parent = list[0];
-            list.unshift(
-                // `${parent}.${part}`,
-                `${parent}.*`
+    const each = (array, action) => {
+        if (array === undefined) {
+            return
+        }
+        for (let index = 0; index < array.length; index += 1) {
+            action(array[index]);
+        }
+    };
+
+    const tracePath = (type) => type.split(".").reduceRight(
+        (list, _, index, parts) => {
+            const next = [
+                ...parts.slice(0, index),
+                "*"
+            ];
+            list.push(
+                next.join(".")
             );
             return list
         },
-        []
+        [type]
     );
 
-    const Bridge = () => {
+    const EventBridge = () => {
         const handlers = {};
 
-        const on = (type, handler) => {
-            handlers[type] = [
-                ...(handlers[type] ?? []),
-                handler
-            ];
-
-            return () => {
-                if (handlers[type] === undefined) {
-                    return
-                }
-                handlers[type] = handlers[type].filter(
-                    h => h !== handler
-                );
+        const addHandler = (type, handler, count) => {
+            handlers[type] = handlers[type] || [];
+            const entry = {
+                handler,
+                count,
+            };
+            handlers[type].push(entry);
+            return entry
+        };
+        const removeHandler = (type, entry) => {
+            if (handlers[type] === undefined) {
+                return
             }
+            const index = handlers[type].indexOf(entry);
+            if (index === -1) {
+                return
+            }
+            handlers[type].splice(index, 1);
+        };
+        const on = (type, handler) => {
+            const entry = addHandler(type, handler, Number.POSITIVE_INFINITY);
+            return () => removeHandler(type, entry)
         };
         const once = (type, handler) => {
-            let called = false;
-            const wrapped = (evt) => {
-                if (called) {
-                    return
-                }
-                called = true;
-                unsub();
-                handler(evt);
-            };
-            const unsub = on(type, wrapped);
+            const entry = addHandler(type, handler, 1);
+            return () => removeHandler(type, entry)
         };
 
-        const fire = async (type, data) => {
-            const evt = {type, data};
+        const emit = async (type, data) => {
+            const evt = { type, data };
 
-            const paths = pathList(type);
+            const paths = tracePath(type);
 
-            for (const path of paths) {
-                for (const handler of handlers[path] ?? []) {
-                    queueMicrotask(
-                        () => handler(evt)
-                    );
-                }
-            }
+            const remove = [];
+            each(
+                paths,
+                (path) => each(
+                    handlers[path],
+                    (entry) => {
+                        entry.count -= 1;
+                        queueMicrotask(
+                            () => entry.handler({
+                                source: path,
+                                ...evt
+                            })
+                        );
+                        if (entry.count === 0) {
+                            remove.push([path, entry]);
+                        }
+                    }
+                )
+            );
+            each(
+                remove,
+                (info) => removeHandler(...info)
+            );
         };
 
         const removeAll = () => {
             for (const key of Object.keys(handlers)) {
                 delete handlers[key];
             }
+            for (const key of Object.getOwnPropertySymbols(handlers)) {
+                delete handlers[key];
+            }
+        };
+
+        const forward = (dest) => on(
+            "*",
+            (evt) => dest.emit(evt.type, evt.data)
+        );
+        const pull = (source, types) => {
+            const handlers = types.map(
+                (type) => [
+                    type,
+                    (evt) => emit(type, evt)
+                ]
+            );
+            for (const pair of handlers) {
+                source.addEventListener(pair[0], pair[1]);
+            }
+            return () => {
+                for (const pair of handlers) {
+                    source.removeEventListener(pair[0], pair[1]);
+                }
+            }
         };
 
         return {
             on,
             once,
-            fire,
+            emit,
+            forward,
+            pull,
             removeAll,
         }
     };
+    EventBridge.tracePath = tracePath;
 
     const Chat = (options) => {
-        const emitter = Bridge();
+        const bridge = EventBridge();
         const {user, channel} = options;
-        const processMessage = initParser(user.name, emitter);
+        const parseMessage = initParser(user.name);
 
         let socket = null;
 
@@ -275,11 +328,18 @@ var Chat = (function () {
                     "message",
                     (evt) => {
                         const { data } = evt;
-                        data.trim().split(/\r?\n/).forEach(processMessage);
+                        const messages =
+                            data
+                            .trim()
+                            .split(/\r?\n/)
+                            .map(parseMessage);
+                        for (const message of messages) {
+                            bridge.emit(message.type || "unknown", message);
+                        }
                     }
                 );
 
-                emitter.once(
+                bridge.once(
                     "join",
                     evt => {
                         const {channel} = evt.data;
@@ -320,7 +380,7 @@ var Chat = (function () {
                 }
 
                 const nonce = `${Math.random().toString(16)}.${Date.now()}`;
-                const stop = emitter.on(
+                const stop = bridge.on(
                     "USERSTATE",
                     (evt) => {
                         if (evt.data.tags.clientNonce !== nonce) {
@@ -345,7 +405,7 @@ var Chat = (function () {
             }
         );
 
-        emitter.on(
+        bridge.on(
             "ping",
             () => {
                 socket.send("PONG");
@@ -353,7 +413,8 @@ var Chat = (function () {
         );
 
         return {
-            on: emitter.on,
+            on: bridge.on,
+            forward: bridge.forward,
             connect,
             disconnect,
             say,

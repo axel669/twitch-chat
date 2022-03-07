@@ -1,13 +1,12 @@
-const initParser = (username, emitter) => {
-    const processMessage = (line) => {
+const initParser = (username) => {
+    const parseMessage = (line) => {
         const type = parseType(line)
 
         if (parser[type] === undefined) {
             return type
         }
 
-        const message = parser[type](line)
-        emitter.fire(message.type, message)
+        return parser[type](line)
     }
 
     const source = {
@@ -100,7 +99,7 @@ const initParser = (username, emitter) => {
 
         return pos
     }
-    const iterativeParse = (line, info, index) => {
+    const parseSection = (line, info, index) => {
         const space = findOrEnd(line, " ", index)
         if (line.charAt(index) === "@") {
             const tags = line.substring(index + 1, space)
@@ -168,14 +167,14 @@ const initParser = (username, emitter) => {
         const info = {}
         let index = 0
         while (true) {
-            index = iterativeParse(line, info, index)
+            index = parseSection(line, info, index)
             if (index >= line.length) {
                 return info
             }
         }
     }
 
-    return processMessage
+    return parseMessage
 }
 
 export default initParser

@@ -1,10 +1,10 @@
 import initParser from "./parse.js"
-import Bridge from "./bridge.js"
+import EventBridge from "@axel669/event-bridge/esm"
 
 const Chat = (options) => {
-    const emitter = Bridge()
+    const bridge = EventBridge()
     const {user, channel} = options
-    const processMessage = initParser(user.name, emitter)
+    const parseMessage = initParser(user.name, bridge)
 
     let socket = null
 
@@ -20,11 +20,18 @@ const Chat = (options) => {
                 "message",
                 (evt) => {
                     const { data } = evt
-                    data.trim().split(/\r?\n/).forEach(processMessage)
+                    const messages =
+                        data
+                        .trim()
+                        .split(/\r?\n/)
+                        .map(parseMessage)
+                    for (const message of messages) {
+                        bridge.emit(message.type || "unknown", message)
+                    }
                 }
             )
 
-            emitter.once(
+            bridge.once(
                 "join",
                 evt => {
                     const {channel} = evt.data
@@ -65,7 +72,7 @@ const Chat = (options) => {
             }
 
             const nonce = `${Math.random().toString(16)}.${Date.now()}`
-            const stop = emitter.on(
+            const stop = bridge.on(
                 "USERSTATE",
                 (evt) => {
                     if (evt.data.tags.clientNonce !== nonce) {
@@ -90,7 +97,7 @@ const Chat = (options) => {
         }
     )
 
-    emitter.on(
+    bridge.on(
         "ping",
         () => {
             socket.send("PONG")
@@ -98,7 +105,8 @@ const Chat = (options) => {
     )
 
     return {
-        on: emitter.on,
+        on: bridge.on,
+        forward: bridge.forward,
         connect,
         disconnect,
         say,
