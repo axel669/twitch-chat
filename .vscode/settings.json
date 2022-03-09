@@ -1,0 +1,15 @@
+{
+    "liveServer.settings.NoBrowser": true,
+    "liveServer.settings.port": 2002,
+    // "liveServer.settings.https": {
+    //     "enable": true,
+    //     "cert": "cert.pem location",
+    //     "key": "key.pem location",
+    //     "passphrase": ""
+    // },
+    "liveServer.settings.host": "0.0.0.0",
+    "liveServer.settings.ignoreFiles": [
+        "**/*"
+    ],
+    "liveServer.settings.root": "/"
+}
