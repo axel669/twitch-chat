@@ -1,17 +1,41 @@
 import initParser from "./parse.js"
 import EventBridge from "@axel669/event-bridge/esm"
 
+/*
+Art by Joan Stark
+                                  .-.
+     (___________________________()6 `-,
+     (   ______________________   /''"`
+     //\\                      //\\
+jgs  "" ""                     "" ""
+*/
+
 const Chat = (options) => {
     const bridge = EventBridge()
-    const {user, channel} = options
+    const {user, channel} = options || {}
+
+    if (user === undefined) {
+        return new Error("Invalid config: user not provided")
+    }
+    if (user.name === undefined) {
+        return new Error("Invalid config: user.name not provided")
+    }
+    if (user.token === undefined) {
+        return new Error("Invalid config: user.token not provided")
+    }
+    if (channel === undefined) {
+        return new Error("Invalid config: channel not provided")
+    }
+
     const parseMessage = initParser(user.name, bridge)
 
     let socket = null
 
     const connect = () => new Promise(
-        (resolve, reject) => {
+        (resolve) => {
             if (socket !== null) {
                 resolve(false)
+                return
             }
 
             socket = new WebSocket("wss://irc-ws.chat.twitch.tv:443")
@@ -31,7 +55,7 @@ const Chat = (options) => {
                 }
             )
 
-            bridge.once(
+            const stopJoin = bridge.once(
                 "join",
                 evt => {
                     const {channel} = evt.data
@@ -43,14 +67,28 @@ const Chat = (options) => {
                         return
                     }
 
+                    stopNotice()
+                    bridge.emit("connect", "chat")
                     resolve(true)
+                }
+            )
+            const stopNotice = bridge.on(
+                "system",
+                (evt) => {
+                    if (evt.data.command !== "NOTICE") {
+                        return
+                    }
+                    stopJoin()
+                    resolve(
+                        new Error(evt.data.message)
+                    )
                 }
             )
 
             socket.addEventListener(
                 "open",
                 () => {
-                    socket.send(`PASS ${user.pass}`)
+                    socket.send(`PASS oauth:${user.token}`)
                     socket.send(`NICK ${user.name}`)
                     socket.send("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands")
                     socket.send(`JOIN #${channel.toLowerCase()}`)
@@ -64,6 +102,7 @@ const Chat = (options) => {
         }
         socket.close()
         socket = null
+        bridge.emit("disconnect", "chat")
     }
     const say = (message, replyID) => new Promise(
         (resolve) => {
@@ -88,11 +127,12 @@ const Chat = (options) => {
                     })
                 }
             )
+            const nonceTag = `client-nonce=${nonce}`
             const replyTag = (replyID === undefined)
                 ? ""
                 : `;reply-parent-msg-id=${replyID}`
             socket.send(
-                `@client-nonce=${nonce}${replyTag} PRIVMSG #${channel} :${message}`
+                `@${nonceTag}${replyTag} PRIVMSG #${channel} :${message}`
             )
         }
     )
@@ -106,7 +146,6 @@ const Chat = (options) => {
 
     return {
         on: bridge.on,
-        forward: bridge.forward,
         connect,
         disconnect,
         say,

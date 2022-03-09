@@ -1,7 +1,3 @@
-'use strict';
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
 //  Hand rolled loops and splice are used for performance reasons.
 //  Normally I wouldn't be concerned with the difference, but with the level
 //      this lib operates at, I want to get as much performance as possible.
@@ -619,6 +615,4 @@ const RealTime = (options, ...sections) => {
     }
 };
 
-exports.Chat = Chat;
-exports.Pubsub = Pubsub;
-exports.RealTime = RealTime;
+export { Chat, Pubsub, RealTime };

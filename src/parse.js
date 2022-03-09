@@ -49,7 +49,10 @@ const initParser = (username) => {
             if (tags.bits !== undefined) {
                 return "bits"
             }
-            return "chat"
+            if (tags.customRewardID !== undefined) {
+                return "chat.redeem"
+            }
+            return "chat.message"
         }
 
         if (command === "USERNOTICE") {
@@ -73,6 +76,16 @@ const initParser = (username) => {
                         line.substr(space + 1, 3)
                     ),
                     message: line.substr(space + 5)
+                }
+            }
+
+            if (line.substr(space + 1, username.length) !== username) {
+                const nextSpace = line.indexOf(" ", space + 1)
+                return {
+                    type,
+                    from,
+                    command: line.slice(space + 1, nextSpace),
+                    message: line.slice(nextSpace + 1)
                 }
             }
 
@@ -102,7 +115,7 @@ const initParser = (username) => {
     const parseSection = (line, info, index) => {
         const space = findOrEnd(line, " ", index)
         if (line.charAt(index) === "@") {
-            const tags = line.substring(index + 1, space)
+            const tags = line.slice(index + 1, space)
 
             info.tags = parseTags(tags)
             return space + 1
@@ -110,20 +123,20 @@ const initParser = (username) => {
 
         if (line.charAt(index) === ":") {
             if (info.source === undefined) {
-                info.source = line.substr(index, space)
+                info.source = line.slice(index, space)
                 return space + 1
             }
 
-            info.message = line.substr(index + 1)
+            info.message = line.slice(index + 1)
             return line.length
         }
 
         if (line.charAt(index) === "#") {
-            info.channel = line.substring(index + 1, space)
+            info.channel = line.slice(index + 1, space)
             return space + 1
         }
 
-        info.command = line.substring(index, space)
+        info.command = line.slice(index, space)
         return space + 1
     }
 
