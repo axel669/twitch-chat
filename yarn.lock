@@ -2,10 +2,10 @@
 # yarn lockfile v1
 
 
-"@axel669/event-bridge@^1.0.1":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@axel669/event-bridge/-/event-bridge-1.0.1.tgz#327b642a8a1104e3a937e2f6f7288e86497ba288"
-  integrity sha512-4DRJ5+vhUAJDCkco+5neqbDrccEzjfbzdt5R2tScT+60H5RqsR7DJAPWc3Bdvo9vldWsT0ZUxgneEFxwiXRwsQ==
+"@axel669/event-bridge@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@axel669/event-bridge/-/event-bridge-1.0.2.tgz#43da1537d1f7bc243dfda3928771a6aa8216e0c3"
+  integrity sha512-xTnGEjDst6xL4js5ZWsSTHPBL2E0C+umPhRKMYDuH0EaZuCLa5SJyLj5WVX9Y575D9dkEOI8F1B9qCvAWFN1XA==
 
 "@rollup/plugin-node-resolve@^13.1.3":
   version "13.1.3"

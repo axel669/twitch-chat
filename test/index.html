@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Chat.js</title>
+
+        <style>
+            body {
+                background-color: #000000;
+                color: #ffffff;
+            }
+        </style>
+    </head>
+
+    <body>
+        working?
+        <script src="/dist/twitch.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@axel669/event-bridge/dist/event-bridge.js"></script>
+        <script src="/test/users/axel669.js"></script>
+        <script>
+            const all = twitch.RealTime({
+                user,
+                channel: "axel669",
+                topics: [
+                    "channel-points-channel-v1"
+                ]
+            })
+
+            all.on("connect", console.log)
+            all.on("channel-points-channel-v1", console.log)
+            all.on("chat.*", console.log)
+            all.connect().then(console.log)
+            // const chat = twitchComm.Chat({
+            //     // user: {
+            //     //     name: "bad",
+            //     //     token: "nope",
+            //     // },
+            //     user,
+            //     channel: "axel669"
+            // })
+
+            // chat.on(
+            //     "chat.*",
+            //     // ({ data }) => console.log("chat", data.tags.displayName, data.message, data.tags)
+            //     (evt) => console.log("chat", evt)
+            // )
+
+            // const pubsub = twitchComm.Pubsub({
+            //     user,
+            //     topics: [
+            //         "channel-points-channel-v1"
+            //     ]
+            // })
+            // pubsub.on("*", console.log)
+            // pubsub.connect().then(console.log)
+            // chat.on(
+            //     "*",
+            //     evt => console.log(evt.data)
+            // )
+            // chat.on(
+            //     "bits",
+            //     ({ data }) => console.log("bits", data.tags.displayName, data.tags.bits)
+            // )
+            // chat.on(
+            //     "sub",
+            //     ({ data }) => console.log("sub", data)
+            // )
+            // chat.connect().then(
+            //     value => {
+            //         if (value === true) {
+            //             console.log("ready!")
+            //             return
+            //         }
+
+            //         console.error(value)
+            //     }
+            // )
+        </script>
+        <script>
+        </script>
+    </body>
+</html>

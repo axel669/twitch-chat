@@ -1,6 +1,6 @@
 {
   "name": "@axel669/twitch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -27,6 +27,6 @@
     "src/"
   ],
   "dependencies": {
-    "@axel669/event-bridge": "^1.0.1"
+    "@axel669/event-bridge": "^1.0.2"
   }
 }
