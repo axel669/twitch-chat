@@ -1,6 +1,6 @@
 {
   "name": "@axel669/twitch",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,9 @@
   },
   "files": [
     "index.js",
+    "node.js",
     "dist/",
+    "/esm",
     "src/"
   ],
   "dependencies": {
