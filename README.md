@@ -21,6 +21,9 @@ Either use a bundler and normal node imports, or the following script tag
 ### Require
 ```js
 const {Chat, Pubsub, RealTime} = require("@axel669/twitch")
+
+//  If using in node and not a bundler
+const {Chat, Pubsub, RealTime} = require("@axel669/twitch/node")
 ```
 
 ### Import

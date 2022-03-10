@@ -1,5 +1,7 @@
 import EventBridge from "@axel669/event-bridge/esm"
 
+import { WebSocket } from "./websocket.js"
+
 const Pubsub = (options) => {
     const bridge = EventBridge()
     const { user, topics } = options || {}

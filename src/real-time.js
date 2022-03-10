@@ -39,8 +39,4 @@ const RealTime = (options, ...sections) => {
     }
 }
 
-export {
-    Chat,
-    Pubsub,
-    RealTime
-}
+export default RealTime

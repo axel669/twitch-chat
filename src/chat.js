@@ -1,6 +1,8 @@
 import initParser from "./parse.js"
 import EventBridge from "@axel669/event-bridge/esm"
 
+import { WebSocket } from "./websocket.js"
+
 /*
 Art by Joan Stark
                                   .-.

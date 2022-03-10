@@ -1,9 +1,8 @@
 {
   "name": "@axel669/twitch",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "index.js",
-  "type": "module",
   "scripts": {
     "build": "rollup -c build/rollup.config.js"
   },
@@ -18,8 +17,10 @@
   },
   "homepage": "https://github.com/axel669/twitch-chat#readme",
   "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.2",
     "@rollup/plugin-node-resolve": "^13.1.3",
-    "rollup": "^2.69.1"
+    "rollup": "^2.69.1",
+    "ws": "^8.5.0"
   },
   "files": [
     "index.js",
