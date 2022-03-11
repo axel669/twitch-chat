@@ -13,7 +13,7 @@ yarn add @axel669/twitch
 ### Browser
 Either use a bundler and normal node imports, or the following script tag
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@axel669/dist/twitch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@axel669/twitch/dist/twitch.js"></script>
 ```
 
 ## Usage

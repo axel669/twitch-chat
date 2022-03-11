@@ -99,7 +99,7 @@ const Pubsub = (options) => {
         }
         socket.close()
         socket = null
-        bridge.emit("disconnect", "pusub")
+        bridge.emit("disconnect", "pubsub")
     }
 
     return {
