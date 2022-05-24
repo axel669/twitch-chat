@@ -20,6 +20,7 @@ const Pubsub = (options) => {
     }
 
     let socket = null
+    let pingID = null
     const pubsubTopics = topics.map(
         topic => `${topic}.${user.id}`
     )
@@ -76,6 +77,12 @@ const Pubsub = (options) => {
                                 return
                             }
                             bridge.emit("connect", "pubsub")
+                            pingID = setInterval(
+                                () => socket.send(
+                                    JSON.stringify({ type: "PING" })
+                                ),
+                                2500 * 60
+                            )
                             resolve(true)
                         }
                     )
@@ -97,6 +104,8 @@ const Pubsub = (options) => {
         if (socket === null) {
             return
         }
+        clearInterval(pingID)
+        pingID = null
         socket.close()
         socket = null
         bridge.emit("disconnect", "pubsub")
