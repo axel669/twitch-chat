@@ -1,15 +1,22 @@
 const user = require("./users/axel669.json")
-const { RealTime } = require("../node.js")
+const { RealTime, API } = require("../node.js")
 
-const all = RealTime({
+const api = API({
     user,
-    channel: "odatnurd",
-    topics: [
-        "channel-points-channel-v1"
-    ]
+    clientID: "mrz3t77h5octc2glld7a2qaw8vuo7q",
 })
 
-all.on("connect", console.log)
-all.on("channel-points-channel-v1", console.log)
-all.on("chat.*", console.log)
-all.connect().then(console.log)
+api.polls.list().then(console.log)
+
+// const all = RealTime({
+//     user,
+//     channel: "odatnurd",
+//     topics: [
+//         "channel-points-channel-v1"
+//     ]
+// })
+
+// all.on("connect", console.log)
+// all.on("channel-points-channel-v1", console.log)
+// all.on("*", console.log)
+// all.connect().then(console.log)

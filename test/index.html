@@ -16,19 +16,71 @@
         <script src="/dist/twitch.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@axel669/event-bridge/dist/event-bridge.js"></script>
         <script src="/test/users/axel669.js"></script>
-        <script>
-            const all = twitch.RealTime({
+        <script type="module"">
+            // const all = twitch.RealTime({
+            //     user,
+            //     channel: "axel669",
+            //     topics: [
+            //         "channel-points-channel-v1"
+            //     ]
+            // })
+
+            const api = twitch.API({
                 user,
-                channel: "axel669",
-                topics: [
-                    "channel-points-channel-v1"
-                ]
+                clientID: "mrz3t77h5octc2glld7a2qaw8vuo7q",
             })
 
-            all.on("connect", console.log)
-            all.on("channel-points-channel-v1", console.log)
-            all.on("chat.*", console.log)
-            all.connect().then(console.log)
+            // all.on("connect", console.log)
+            // all.on("channel-points-channel-v1", console.log)
+            // all.on("chat.*", console.log)
+            // all.on("*", console.log)
+            // all.connect().then(console.log)
+
+            api.polls.find("38c6200b-1ccc-4e3e-9be9-83f1bed5cb09")
+                .then(console.log)
+            // const wait = time => new Promise(
+            //     resolve => setTimeout(resolve, time)
+            // )
+            // const test = await api.polls.create({
+            //     title: "Test Poll",
+            //     choices: [
+            //         { title: "First" },
+            //         { title: "Second" },
+            //     ],
+            //     duration: 30,
+            //     bits_voting_enabled: true,
+            //     bits_per_vote: 1000,
+            //     channel_points_voting_enabled: true,
+            //     channel_points_per_vote: 50,
+            // })
+            // await wait(5000)
+            // console.log(
+            //     await api.polls.end(
+            //         test.id,
+            //         api.polls.TERMINATED
+            //     )
+            // )
+            // fetch(
+            //     `https://api.twitch.tv/helix/polls?broadcaster_id=${user.id}`,
+            //     {
+            //         // method: "POST",
+            //         headers: {
+            //             "Client-Id": "mrz3t77h5octc2glld7a2qaw8vuo7q",
+            //             "Authorization": `Bearer ${user.token}`,
+            //             "Content-Type": "application/json",
+            //         },
+            //         // body: JSON.stringify({
+            //         //     broadcaster_id: user.id,
+            //         //     title: "Test",
+            //         //     choices: [
+            //         //         { title: "wat 1" },
+            //         //         { title: "wat 2" },
+            //         //     ],
+            //         //     duration: 15
+            //         // })
+            //     }
+            // ).then(res => res.json())
+            // .then(console.log)
         </script>
         <script>
         </script>

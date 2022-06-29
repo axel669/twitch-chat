@@ -3,7 +3,48 @@
 Object.defineProperty(exports, '__esModule', { value: true });
 
 let WebSocket$1 = null;
-const init = (socketConstructor) => WebSocket$1 = socketConstructor;
+const initWS = (socketConstructor) => WebSocket$1 = socketConstructor;
+
+let fetch$1 = null;
+const initReq = (fetchFunc) => fetch$1 = fetchFunc;
+
+const cleanParams = (paramSource = {}) => {
+    const params = new URLSearchParams(
+        Object.fromEntries(
+            Object.entries(paramSource)
+                .filter(p => p[1] !== undefined)
+        )
+    );
+
+    return params.toString()
+};
+
+const baseURL = "https://api.twitch.tv/helix";
+const request = async (options) => {
+    const {
+        path,
+        headers,
+        data,
+        params,
+        type,
+    } = options;
+
+    const hasData = data !== undefined;
+    const method = type ?? (hasData ? "POST" : "GET");
+    const body = hasData ? JSON.stringify(data) : undefined;
+    const fetchOptions = { method, headers, body };
+
+    const paramString = cleanParams(params);
+    const url = `${baseURL}${path}?${paramString}`;
+
+    const response = await fetch$1(url, fetchOptions);
+
+    if (response.ok === false) {
+        return new Error(`${response.status}: ${response.statusText}`)
+    }
+
+    return await response.json()
+};
 
 const initParser = (username) => {
     const parseMessage = (line) => {
@@ -632,8 +673,78 @@ const RealTime = (options, ...sections) => {
     }
 };
 
-init(WebSocket);
+const one = (func) =>
+    async (...args) => {
+        const result = await func(...args);
 
+        if (result instanceof Error) {
+            return result
+        }
+
+        return result.data[0]
+    };
+
+const api = (options) => {
+    const {user, clientID} = options;
+
+    const headers = {
+        "Client-Id": clientID,
+        "Authorization": `Bearer ${user.token}`,
+        "Content-Type": "application/json",
+    };
+    return {
+        polls: {
+            TERMINATED: "TERMINATED",
+            ARCHIVED: "ARCHIVED",
+            find: one(
+                (id) => request({
+                    path: "/polls",
+                    headers,
+                    params: {
+                        id,
+                        broadcaster_id: user.id,
+                    }
+                })
+            ),
+            list: (after, first) => request({
+                path: "/polls",
+                headers,
+                params: {
+                    broadcaster_id: user.id,
+                    after,
+                    first,
+                }
+            }),
+            create: one(
+                (pollInfo) => request({
+                    path: "/polls",
+                    headers,
+                    data: {
+                        ...pollInfo,
+                        broadcaster_id: user.id
+                    },
+                })
+            ),
+            end: one(
+                (id, status) => request({
+                    path: "/polls",
+                    type: "PATCH",
+                    headers,
+                    data: {
+                        status,
+                        id,
+                        broadcaster_id: user.id,
+                    },
+                })
+            )
+        }
+    }
+};
+
+initWS(WebSocket);
+initReq(fetch);
+
+exports.API = api;
 exports.Chat = Chat;
 exports.Pubsub = Pubsub;
 exports.RealTime = RealTime;

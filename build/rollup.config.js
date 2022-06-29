@@ -29,6 +29,10 @@ export default [
             format: "cjs",
             file: "node.js"
         },
+        external: [
+            "node-fetch",
+            "ws",
+        ],
         plugins: [
             resolve(),
             commonjs()

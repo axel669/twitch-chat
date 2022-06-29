@@ -1,4 +1,4 @@
 let WebSocket = null
-const init = (socketConstructor) => WebSocket = socketConstructor
+const initWS = (socketConstructor) => WebSocket = socketConstructor
 
-export {init, WebSocket}
+export {initWS, WebSocket}
