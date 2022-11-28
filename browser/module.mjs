@@ -1,8 +1,8 @@
 let WebSocket$1 = null;
 const initWS = (socketConstructor) => WebSocket$1 = socketConstructor;
 
-let fetch$1 = null;
-const initReq = (fetchFunc) => fetch$1 = fetchFunc;
+let fetch$2 = null;
+const initReq = (fetchFunc) => fetch$2 = fetchFunc;
 
 const cleanParams = (paramSource = {}) => {
     const params = new URLSearchParams(
@@ -33,7 +33,7 @@ const request = async (options) => {
     const paramString = cleanParams(params);
     const url = `${baseURL}${path}?${paramString}`;
 
-    const response = await fetch$1(url, fetchOptions);
+    const response = await fetch$2(url, fetchOptions);
 
     if (response.ok === false) {
         return new Error(`${response.status}: ${response.statusText}`)
@@ -41,6 +41,9 @@ const request = async (options) => {
 
     return await response.json()
 };
+
+let fetch$1 = null;
+const initFetch = (fetchFunc) => fetch$1 = fetchFunc;
 
 const initParser = (username) => {
     const parseMessage = (line) => {
@@ -633,39 +636,98 @@ const Pubsub = (options) => {
     }
 };
 
-const RealTime = (options, ...sections) => {
-    const dual = EventBridge();
+const EventSub = (options) => {
+    const bridge = EventBridge();
+    const { user, topics, clientID } = options || {};
 
-    const chat = Chat(options);
-    if (chat instanceof Error) {
-        return chat
-    }
-    const pubsub = Pubsub(options);
-    if (pubsub instanceof Error) {
-        return pubsub
-    }
+    let socket = null;
+    let sessionID = null;
 
-    const connect = () => Promise.all([
-        chat.connect(),
-        pubsub.connect()
-    ]);
-    const disconnect = () => {
-        chat.disconnect();
-        pubsub.disconnect();
+    const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+    const addsub = async (type) => {
+        console.log(`adding listener: ${type}`);
+        const res = await fetch$1(
+            url,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${user.token}`,
+                    "Client-Id": clientID,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    type,
+                    version: "1",
+                    condition: {
+                        broadcaster_user_id: user.id
+                    },
+                    transport: {
+                        method: "websocket",
+                        session_id: sessionID,
+                    }
+                })
+            }
+        );
+        console.log(`${res.ok ? "success" : "failed"}: ${type}`);
+
+        return await res.json()
     };
 
-    const stopChat = dual.pull(chat);
-    const stopPubsub = dual.pull(pubsub);
+    const connect = () => new Promise(
+        resolve => {
+            if (socket !== null) {
+                resolve(false);
+                return
+            }
+
+            socket = new WebSocket$1("wss://eventsub-beta.wss.twitch.tv/ws");
+
+            socket.addEventListener(
+                "open",
+                () => bridge.emit("eventsub.ws-connect", null)
+            );
+            socket.addEventListener(
+                "message",
+                async (evt) => {
+                    const data = JSON.parse(evt.data);
+                    const type = data.metadata.message_type;
+
+                    if (type === "session_welcome") {
+                        sessionID = data.payload.session.id;
+                        await Promise.all(
+                            topics.map(addsub)
+                        );
+                        bridge.emit("connect", "eventsub");
+                        resolve(true);
+                        return
+                    }
+                    if (type === "session_keepalive") {
+                        bridge.emit("eventsub.keepalive", null);
+                        return
+                    }
+
+                    bridge.emit(
+                        data.metadata.subscription_type,
+                        data.payload.event
+                    );
+                }
+            );
+        }
+    );
+
+    const disconnect = () => {
+        if (socket === null) {
+            return
+        }
+        socket.close();
+        socket = null;
+        bridge.emit("disconnect", "eventsub");
+    };
 
     return {
-        on: dual.on,
-        say: chat.say,
+        on: bridge.on,
         connect,
         disconnect,
-        stop: () => {
-            stopChat();
-            stopPubsub();
-        }
     }
 };
 
@@ -737,7 +799,54 @@ const api = (options) => {
     }
 };
 
+const Multi = (options) => {
+    const { connectors } = options;
+
+    const multiband = EventBridge();
+    const bridges = connectors.map(
+        connector => connector(options)
+    );
+    const failed = bridges.find(bridge => bridge instanceof Error);
+    if (failed !== undefined) {
+        return failed
+    }
+
+    const connect = () => Promise.all(
+        bridges.map(bridge => bridge.connect())
+    );
+    const disconnect = () => Promise.all(
+        bridges.map(bridge => bridge.disconnect())
+    );
+
+    const channels = bridges.map(
+        bridge => multiband.pull(bridge)
+    );
+    const stop = () => channels.forEach(
+        stop => stop()
+    );
+
+    const interfaces = bridges.reduce(
+        (itf, bridge) => {
+            const { on, connect, disconnect, ...intrface } = bridge;
+            for (const [name, func] of Object.entries(intrface)) {
+                itf[name] = func;
+            }
+            return itf
+        },
+        {}
+    );
+
+    return {
+        ...interfaces,
+        on: multiband.on,
+        connect,
+        disconnect,
+        stop,
+    }
+};
+
 initWS(WebSocket);
 initReq(fetch);
+initFetch(fetch);
 
-export { api as API, Chat, Pubsub, RealTime };
+export { api as API, Chat, EventSub, Multi, Pubsub };

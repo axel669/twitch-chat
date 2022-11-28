@@ -7,36 +7,38 @@ browser.
 
 ### yarn/npm
 ```
-yarn add @axel669/twitch
+npm add @axel669/twitch
 ```
 
 ### Browser
-Either use a bundler and normal node imports, or the following script tag
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@axel669/twitch/dist/twitch.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@axel669/twitch/browser/twitch.js"></script>
 ```
 
 ## Usage
 
-### Require
+### Client Side Bundled
 ```js
-const {Chat, Pubsub, RealTime} = require("@axel669/twitch")
-
-//  If using in node and not a bundler
-const {Chat, Pubsub, RealTime} = require("@axel669/twitch/node")
+import {Chat, EventSub, Multi} from "@axel669/twitch/browser"
 ```
+
+### Require
+No longer supported directly.
 
 ### Import
 ```js
-import {Chat, Pubsub, RealTime} from "@axel669/twitch/esm"
+import {Chat, EventSub, Multi} from "@axel669/twitch"
+//  also has a named /node export available if projects also use the browser
+//  import this can help avoid some confusion
+import {Chat, EventSub, Multi} from "@axel669/twitch/node"
 ```
 
 ### Browser
 > If the cdn script tag is used
 ```js
 twitch.Chat(...)
-twitch.Pubsub(...)
-twitch.RealTime(...)
+twitch.EventSub(...)
+twitch.Multi(...)
 ```
 
 ## Events
@@ -102,9 +104,11 @@ chat.disconnect()
 - sub.upgrade - User continues a gifted sub
 - sub.upgrade.anon - User continues a gift sub from an anon user
 
-## Pubsub API
+## Pubsub API (deprecated)
+> This API is deprecated in favor of the EventSub API.
+
 ```js
-const pubsub = twitchComm.Pubsub({
+const pubsub = twitch.Pubsub({
     user: {
         id: "<user id>",
         token: "<oauth token>"
@@ -122,20 +126,52 @@ await pubsub.connect()
 pubsub.disconnect()
 ```
 
+## EventSub API
+> This api is in beta because the udnerlying tech is also in beta.
+
+```js
+const eventsub = twitch.EventSub({
+    user: {
+        id: "<user id>",
+        token: "<oauth token>"
+    },
+    topics: [
+        "channel.follow"
+    ]
+})
+eventsub.on(
+    "channel.follow",
+    ({ data }) => console.log(`${data.user_name} followed!`)
+)
+await eventsub.connect()
+//  some time later
+eventsub.disconnect()
+```
+
+### EventSub Subscriptions
+`EventSub` connects to Twitch's beta EventSub Websocket. Topics are the exact
+subscription topic that Twitch has listed for an event, and the events fired
+will use the same name as the subscription topic.
+[Subscription Topics](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types)
+
 ### Event List
 The `Pubsub` will fire events based on the topics passed into the object on
 creation. it will fire an event with the type of the topic without any of the
 IDs attached. A full list of the pubsub topics and message data can be found
 [Here](https://dev.twitch.tv/docs/pubsub).
 
-## RealTime API
-The `RealTime` function takes the `user`, `token`, and `topics` properties
-from the `Chat` and `Pubsub` functions and instantiates both of them internally.
-It fires events from both of them, and its `connect` and `disconnect`
-functions trigger for both internal objects. It also passes the `say` function
-from the `Chat` object.
+## Multi API
+The `Multi` function takes the `user`, `token`, and `topics` properties
+from the `Chat` and `EventSub` functions and instantiates both of them
+internally. It fires events from both of them, and its `connect` and
+`disconnect` functions trigger for both internal objects. It also passes the
+`say` function from the `Chat` object.
+
+Might add other connectors in the future.
+
 ```js
-const realTime = twitchComm.RealTime({
+const multi = twitch.Multi({
+    connectors: [twitch.Chat, twitch.EventSub],
     user {
         name: "<username>",
         id: "<user id>",
@@ -143,16 +179,16 @@ const realTime = twitchComm.RealTime({
     },
     channel: "<channel>",
     topics: [
-        "channel-points-channel-v1"
+        "channel.follow"
     ]
 })
 
-realTime.on("channel-points-channel-v1", console.log)
-realTime.on("chat.message", console.log)
+multi.on("chat.message", console.log)
+multi.on("channel.follow", console.log)
 
-//  returns an array of [chat connection result, pubsub connection result]
-await realTime.connect()
-await realTime.say("message")
-await realTime.say("reply thread", "<msg id replied to>")
-realTime.disconnect()
+//  returns an array of connectors .connect() results
+await multi.connect()
+await multi.say("message")
+await multi.say("reply thread", "<msg id replied to>")
+multi.disconnect()
 ```

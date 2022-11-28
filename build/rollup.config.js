@@ -7,17 +7,13 @@ export default [
         output: [
             {
                 format: "iife",
-                file: "dist/twitch.js",
+                file: "browser/twitch.js",
                 name: "twitch",
             },
             {
                 format: "esm",
-                file: "esm/index.js"
+                file: "browser/module.mjs"
             },
-            {
-                format: "cjs",
-                file: "index.js"
-            }
         ],
         plugins: [
             resolve()
@@ -26,8 +22,8 @@ export default [
     {
         input: "src/entry/node.js",
         output: {
-            format: "cjs",
-            file: "node.js"
+            format: "esm",
+            file: "node/index.mjs"
         },
         external: [
             "node-fetch",
