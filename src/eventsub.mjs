@@ -11,6 +11,9 @@ const EventSub = (options) => {
     let sessionID = null
 
     const url = "https://api.twitch.tv/helix/eventsub/subscriptions"
+    const apiVersions = {
+        "channel.follow": "2",
+    }
     const addsub = async (type) => {
         console.log(`adding listener: ${type}`)
         const res = await fetch(
@@ -24,9 +27,10 @@ const EventSub = (options) => {
                 },
                 body: JSON.stringify({
                     type,
-                    version: "1",
+                    version: apiVersions[type] ?? "1",
                     condition: {
-                        broadcaster_user_id: user.id
+                        broadcaster_user_id: user.id,
+                        moderator_user_id: user.id,
                     },
                     transport: {
                         method: "websocket",

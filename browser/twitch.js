@@ -383,7 +383,7 @@ var twitch = (function (exports) {
 
     const Chat = (options) => {
         const bridge = EventBridge();
-        const {user, channel} = options || {};
+        const {user, channel, timeout = 7777} = options || {};
 
         if (user === undefined) {
             return new Error("Invalid config: user not provided")
@@ -402,69 +402,148 @@ var twitch = (function (exports) {
 
         let socket = null;
 
+        let retry = null;
+        const attemptConnect = (resolve) => {
+            if (socket !== null) {
+                resolve(null);
+                return
+            }
+
+            socket = new WebSocket$1("wss://irc-ws.chat.twitch.tv:443");
+
+            socket.addEventListener(
+                "message",
+                (evt) => {
+                    const { data } = evt;
+                    const messages =
+                        data
+                        .trim()
+                        .split(/\r?\n/)
+                        .map(parseMessage);
+                    for (const message of messages) {
+                        bridge.emit(message.type || "unknown", message);
+                    }
+                }
+            );
+
+            const stopJoin = bridge.once(
+                "join",
+                evt => {
+                    const { channel } = evt.data;
+
+                    if (channel !== options.channel) {
+                        resolve(
+                            new Error("Join didn't work, I dunno what happened")
+                        );
+                        return
+                    }
+
+                    clearInterval(retry);
+                    stopNotice();
+                    bridge.emit("connect", "chat");
+                    resolve(true);
+                }
+            );
+            const stopNotice = bridge.on(
+                "system",
+                (evt) => {
+                    if (evt.data.command !== "NOTICE") {
+                        return
+                    }
+                    clearInterval(retry);
+                    stopJoin();
+                    resolve(
+                        new Error(evt.data.message)
+                    );
+                }
+            );
+
+            socket.addEventListener(
+                "open",
+                () => {
+                    socket.send(`PASS oauth:${user.token}`);
+                    socket.send(`NICK ${user.name}`);
+                    socket.send("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands");
+                    socket.send(`JOIN #${channel.toLowerCase()}`);
+
+                    retry = setTimeout(
+                        () => {
+                            stopJoin();
+                            stopNotice();
+                            socket.close();
+                            socket = null;
+                            console.log("No response, retrying connection");
+                            attemptConnect(resolve);
+                        },
+                        timeout
+                    );
+                }
+            );
+        };
         const connect = () => new Promise(
             (resolve) => {
-                if (socket !== null) {
-                    resolve(false);
-                    return
-                }
+                attemptConnect(resolve);
+                // if (socket !== null) {
+                //     resolve(false)
+                //     return
+                // }
 
-                socket = new WebSocket$1("wss://irc-ws.chat.twitch.tv:443");
+                // socket = new WebSocket("wss://irc-ws.chat.twitch.tv:443")
 
-                socket.addEventListener(
-                    "message",
-                    (evt) => {
-                        const { data } = evt;
-                        const messages =
-                            data
-                            .trim()
-                            .split(/\r?\n/)
-                            .map(parseMessage);
-                        for (const message of messages) {
-                            bridge.emit(message.type || "unknown", message);
-                        }
-                    }
-                );
+                // socket.addEventListener(
+                //     "message",
+                //     (evt) => {
+                //         const { data } = evt
+                //         const messages =
+                //             data
+                //             .trim()
+                //             .split(/\r?\n/)
+                //             .map(parseMessage)
+                //         for (const message of messages) {
+                //             bridge.emit(message.type || "unknown", message)
+                //         }
+                //     }
+                // )
 
-                const stopJoin = bridge.once(
-                    "join",
-                    evt => {
-                        const {channel} = evt.data;
+                // const stopJoin = bridge.once(
+                //     "join",
+                //     evt => {
+                //         const {channel} = evt.data
 
-                        if (channel !== options.channel) {
-                            resolve(
-                                new Error("Join didn't work, I dunno what happened")
-                            );
-                            return
-                        }
+                //         if (channel !== options.channel) {
+                //             resolve(
+                //                 new Error("Join didn't work, I dunno what happened")
+                //             )
+                //             return
+                //         }
 
-                        stopNotice();
-                        bridge.emit("connect", "chat");
-                        resolve(true);
-                    }
-                );
-                const stopNotice = bridge.on(
-                    "system",
-                    (evt) => {
-                        if (evt.data.command !== "NOTICE") {
-                            return
-                        }
-                        stopJoin();
-                        resolve(
-                            new Error(evt.data.message)
-                        );
-                    }
-                );
+                //         stopNotice()
+                //         bridge.emit("connect", "chat")
+                //         resolve(true)
+                //     }
+                // )
+                // const stopNotice = bridge.on(
+                //     "system",
+                //     (evt) => {
+                //         if (evt.data.command !== "NOTICE") {
+                //             return
+                //         }
+                //         stopJoin()
+                //         resolve(
+                //             new Error(evt.data.message)
+                //         )
+                //     }
+                // )
 
-                socket.addEventListener(
-                    "open",
-                    () => {
-                        socket.send(`PASS oauth:${user.token}`);
-                        socket.send(`NICK ${user.name}`);
-                        socket.send("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands");
-                        socket.send(`JOIN #${channel.toLowerCase()}`);
-                    }
-                );
+                // socket.addEventListener(
+                //     "open",
+                //     () => {
+                //         socket.send(`PASS oauth:${user.token}`)
+                //         socket.send(`NICK ${user.name}`)
+                //         socket.send("CAP REQ :twitch.tv/membership twitch.tv/tags twitch.tv/commands")
+                //         socket.send(`JOIN #${channel.toLowerCase()}`)
+                //     }
+                // )
             }
         );
         const disconnect = () => {
@@ -647,6 +726,9 @@ var twitch = (function (exports) {
         let sessionID = null;
 
         const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+        const apiVersions = {
+            "channel.follow": "2",
+        };
         const addsub = async (type) => {
             console.log(`adding listener: ${type}`);
             const res = await fetch$1(
@@ -660,9 +742,10 @@ var twitch = (function (exports) {
                     },
                     body: JSON.stringify({
                         type,
-                        version: "1",
+                        version: apiVersions[type] ?? "1",
                         condition: {
-                            broadcaster_user_id: user.id
+                            broadcaster_user_id: user.id,
+                            moderator_user_id: user.id,
                         },
                         transport: {
                             method: "websocket",
