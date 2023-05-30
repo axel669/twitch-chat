@@ -766,7 +766,7 @@ const EventSub = (options) => {
                 return
             }
 
-            socket = new WebSocket("wss://eventsub-beta.wss.twitch.tv/ws");
+            socket = new WebSocket("wss://eventsub.wss.twitch.tv/ws");
 
             socket.addEventListener(
                 "open",
